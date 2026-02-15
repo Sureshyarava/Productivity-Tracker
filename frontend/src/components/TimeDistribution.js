@@ -6,18 +6,20 @@ import {
 
 const API_URL = 'http://localhost:5001/api';
 
-function TimeDistribution() {
+function TimeDistribution({ selectedTeam }) {
   const [trends, setTrends] = useState(null);
   const [period, setPeriod] = useState(30);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     fetchTrends();
-  }, [period]);
+  }, [period, selectedTeam]);
 
   const fetchTrends = async () => {
     try {
-      const response = await axios.get(`${API_URL}/trends?days=${period}`);
+      const params = { days: period };
+      if (selectedTeam) params.team = selectedTeam;
+      const response = await axios.get(`${API_URL}/trends`, { params });
       setTrends(response.data);
       setLoading(false);
     } catch (error) {
@@ -56,7 +58,7 @@ function TimeDistribution() {
 
   return (
     <div className="time-distribution">
-      <h2>⏰ Time Distribution Analysis</h2>
+      <h2>Time Distribution Analysis</h2>
       <p style={{ marginBottom: '30px', color: '#666' }}>
         Visualize how time is allocated across different activities over time
       </p>
@@ -135,7 +137,7 @@ function TimeDistribution() {
       </div>
 
       <div style={{ marginTop: '30px', padding: '20px', background: '#f0f8ff', borderRadius: '10px' }}>
-        <h3>💡 Analysis</h3>
+        <h3>Analysis</h3>
         <ul style={{ marginTop: '15px', lineHeight: '2', paddingLeft: '20px' }}>
           <li>Total time tracked: <strong>{grandTotal.toFixed(1)} hours</strong></li>
           <li>Average daily time: <strong>{(grandTotal / period).toFixed(1)} hours</strong></li>
@@ -143,10 +145,10 @@ function TimeDistribution() {
             {Object.entries(totalByCategory).reduce((a, b) => totalByCategory[a[0]] > totalByCategory[b[0]] ? a : b)[0].replace('_', ' ')}
           </strong></li>
           {((totalByCategory.prod_issues / grandTotal) * 100) > 15 && (
-            <li style={{ color: '#dc3545' }}>⚠️ Production issues consuming significant time - review quality processes</li>
+            <li style={{ color: '#dc3545' }}>Production issues consuming significant time - review quality processes</li>
           )}
           {((totalByCategory.development / grandTotal) * 100) > 60 && (
-            <li style={{ color: '#28a745' }}>✅ Good focus on development work</li>
+            <li style={{ color: '#28a745' }}>Good focus on development work</li>
           )}
         </ul>
       </div>

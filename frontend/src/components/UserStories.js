@@ -3,18 +3,19 @@ import axios from 'axios';
 
 const API_URL = 'http://localhost:5001/api';
 
-function UserStories() {
+function UserStories({ selectedTeam }) {
   const [data, setData] = useState(null);
   const [filter, setFilter] = useState('all');
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     fetchUserStories();
-  }, []);
+  }, [selectedTeam]);
 
   const fetchUserStories = async () => {
     try {
-      const response = await axios.get(`${API_URL}/user-stories`);
+      const params = selectedTeam ? { team: selectedTeam } : {};
+      const response = await axios.get(`${API_URL}/user-stories`, { params });
       setData(response.data);
       setLoading(false);
     } catch (error) {
@@ -54,7 +55,7 @@ function UserStories() {
 
   return (
     <div className="user-stories">
-      <h2>📝 User Stories</h2>
+      <h2>User Stories</h2>
       <p style={{ marginBottom: '30px', color: '#666' }}>
         Track all user stories and their current status
       </p>

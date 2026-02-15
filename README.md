@@ -1,42 +1,61 @@
-# 📊 Productivity Tracker
+# Productivity Tracker
 
-A comprehensive productivity tracking tool that measures team performance across multiple dimensions including user stories, GitHub pull requests, testing activities, production support, and production issues. Get actionable insights to identify bottlenecks and optimize team productivity.
+A comprehensive productivity tracking tool that measures team performance across multiple dimensions including user stories, pull requests, testing activities, production support, and production issues. Get actionable insights to identify bottlenecks and optimize team productivity.
 
-## 🎯 Features
+## Features
 
+- **Real Data Integration**: Connect to Jira, GitLab, and Confluence for live data
+- **Multi-Team Support**: Track and compare performance across multiple teams
+- **Team Filtering**: Filter all views by specific team or view all teams combined
 - **Dashboard Overview**: Real-time metrics and KPIs at a glance
 - **Time Distribution Analysis**: Visualize how time is spent across different activities
 - **Team Performance Tracking**: Individual team member productivity metrics
 - **AI-Powered Insights**: Automated analysis and recommendations
-- **User Stories Tracking**: Monitor story completion and progress
-- **Pull Request Management**: Track PR status and review times
-- **Testing Activities**: Monitor test coverage and results
-- **Production Support**: Track support tickets and resolution times
-- **Production Issues**: Monitor and analyze production incidents
+- **User Stories Tracking**: Monitor story completion and progress from Jira
+- **Pull Request Management**: Track MR status and review times from GitLab
+- **Testing Activities**: Monitor test coverage and results from Jira
+- **Production Support**: Track support tickets and resolution times from Jira
+- **Production Issues**: Monitor and analyze production incidents from Jira
+- **Documentation Metrics**: Track Confluence page updates and collaboration
 
-## 🏗️ Architecture
+## Architecture
 
-### Backend (Python/Flask)
+### Backend (Python/FastAPI)
 - RESTful API with multiple endpoints
-- Fake data generation for demonstration
+- Real-time data from Jira, GitLab, and Confluence APIs
+- Mock data fallback for testing/demo purposes
+- Intelligent caching layer (5-minute TTL)
 - Productivity metrics calculation
 - Time distribution analysis
 - Team performance analytics
+- Multi-team filtering support
+
+### API Integrations
+- **Jira**: User stories, testing activities, support tickets, production issues
+- **GitLab**: Merge requests, pipeline statistics, commit activity
+- **Confluence**: Documentation metrics, collaboration stats, retrospectives
 
 ### Frontend (React)
 - Modern, responsive dashboard
 - Interactive data visualizations (Chart.js, Recharts)
 - Multiple views for different metrics
 - Real-time data updates
+- Team selector for filtering data
 
-## 📁 Project Structure
+## Project Structure
 
 ```
 Progress-Tracker/
 ├── backend/
-│   ├── app.py              # Flask API server
-│   ├── models.py           # Data models and fake data generation
-│   └── requirements.txt    # Python dependencies
+│   ├── app.py                    # FastAPI server
+│   ├── models.py                 # Data models and metric calculations
+│   ├── config.py                 # Configuration management
+│   ├── jira_integration.py       # Jira API integration
+│   ├── gitlab_integration.py     # GitLab API integration
+│   ├── confluence_integration.py # Confluence API integration
+│   ├── mock_data.json            # Mock data for testing
+│   ├── .env.example              # Environment variables template
+│   └── requirements.txt          # Python dependencies
 └── frontend/
     ├── public/
     │   └── index.html
@@ -54,12 +73,13 @@ Progress-Tracker/
     └── package.json
 ```
 
-## 🚀 Quick Start
+## Quick Start
 
 ### Prerequisites
 - Python 3.8+
 - Node.js 16+
 - npm or yarn
+- (Optional) Jira, GitLab, and Confluence accounts with API access
 
 ### Backend Setup
 
@@ -79,12 +99,20 @@ source venv/bin/activate  # On Windows: venv\Scripts\activate
 pip install -r requirements.txt
 ```
 
-4. Start the Flask server:
+4. Configure API connections (optional):
+```bash
+cp .env.example .env
+# Edit .env with your Jira, GitLab, and Confluence credentials
+```
+
+If you don't configure API connections, the system will use mock data automatically.
+
+5. Start the FastAPI server:
 ```bash
 python app.py
 ```
 
-The backend API will run on `http://localhost:5000`
+The backend API will run on `http://localhost:5001`
 
 ### Frontend Setup
 
@@ -105,21 +133,23 @@ npm start
 
 The frontend will run on `http://localhost:3000` and automatically open in your browser.
 
-## 📊 API Endpoints
+## API Endpoints
 
 ### Overview & Metrics
-- `GET /api/overview` - Overall productivity metrics
-- `GET /api/time-distribution?period=week` - Time distribution analysis
-- `GET /api/team-performance` - Team member performance metrics
-- `GET /api/insights` - AI-generated insights and recommendations
-- `GET /api/trends?days=30` - Productivity trends over time
+- `GET /api/overview?team={team}` - Overall productivity metrics (optional team filter)
+- `GET /api/status` - API integration status and configuration
+- `GET /api/time-distribution?period=week&team={team}` - Time distribution analysis
+- `GET /api/team-performance?team={team}` - Team member performance metrics
+- `GET /api/insights?team={team}` - AI-generated insights and recommendations
+- `GET /api/trends?days=30&team={team}` - Productivity trends over time
 
 ### Data Endpoints
-- `GET /api/user-stories` - All user stories with status
-- `GET /api/pull-requests` - All pull requests
-- `GET /api/testing` - Testing activities
-- `GET /api/prod-support` - Production support tickets
-- `GET /api/prod-issues` - Production issues
+- `GET /api/user-stories?team={team}` - All user stories with status
+- `GET /api/pull-requests?team={team}` - All pull/merge requests
+- `GET /api/testing?team={team}` - Testing activities
+- `GET /api/prod-support?team={team}` - Production support tickets
+- `GET /api/prod-issues?team={team}` - Production issues
+- `GET /api/teams` - List of all configured teams
 
 ## 📈 Key Metrics Tracked
 
@@ -188,7 +218,7 @@ The frontend will run on `http://localhost:3000` and automatically open in your 
 - Code change metrics
 - Comment statistics
 
-## 💡 Insights & Recommendations
+## Insights & Recommendations
 
 The system automatically analyzes productivity patterns and provides insights such as:
 
@@ -198,7 +228,7 @@ The system automatically analyzes productivity patterns and provides insights su
 - **Good Development Focus**: Confirms when development is >50% of time
 - **Long PR Review Times**: Identifies slow review processes
 
-## 🎯 Productivity Score Calculation
+## Productivity Score Calculation
 
 The productivity score for each team member is calculated based on:
 
@@ -210,16 +240,43 @@ The productivity score for each team member is calculated based on:
 
 Score is normalized by total time spent for fair comparison.
 
-## 🔧 Customization
+## Customization
 
-### Adding Real Data
-Replace the fake data generation in `backend/models.py` with connections to your actual data sources:
+### Configuring API Integrations
 
-- **User Stories**: Jira, Azure DevOps, GitHub Projects
-- **Pull Requests**: GitHub API, GitLab API, Bitbucket API
-- **Testing**: Test automation frameworks (Jest, Pytest, etc.)
-- **Support**: Zendesk, ServiceNow, Freshdesk APIs
-- **Production Issues**: PagerDuty, Datadog, New Relic
+The system supports real-time data from:
+
+- **Jira**: Configure `JIRA_URL`, `JIRA_EMAIL`, `JIRA_API_TOKEN`, and `JIRA_PROJECT_KEY` in `.env`
+- **GitLab**: Set `GITLAB_URL`, `GITLAB_TOKEN`, and `GITLAB_PROJECT_IDS` (comma-separated project IDs)
+- **Confluence**: Configure `CONFLUENCE_URL`, `CONFLUENCE_EMAIL`, `CONFLUENCE_API_TOKEN`, and `CONFLUENCE_SPACE_KEY`
+
+#### Obtaining API Tokens
+
+**Jira**:
+1. Go to https://id.atlassian.com/manage-profile/security/api-tokens
+2. Click "Create API token"
+3. Copy the token and add to `.env`
+
+**GitLab**:
+1. Go to User Settings > Access Tokens
+2. Create a token with `read_api` and `read_repository` scopes
+3. Copy the token and add to `.env`
+
+**Confluence**:
+1. Use the same API token as Jira (if using Atlassian Cloud)
+2. Or generate a separate token following the Jira steps
+
+#### Team Mapping
+
+Teams are extracted from:
+- **Jira**: Labels, custom fields, or components containing team names
+- **GitLab**: Labels on merge requests matching team names
+- **Confluence**: Page labels matching team names
+
+Configure your teams in `.env`:
+```
+TEAMS=Team Alpha,Team Beta,Team Gamma
+```
 
 ### Modifying Metrics
 Edit the calculation functions in `backend/models.py`:
@@ -239,12 +296,17 @@ Edit the calculation functions in `backend/models.py`:
 ✅ Responsive design  
 ✅ Export capabilities (can be added)  
 
-## 🛠️ Technologies Used
+## Technologies Used
 
 ### Backend
-- **Flask**: Web framework
-- **Flask-CORS**: Cross-origin resource sharing
+- **FastAPI**: Modern web framework for building APIs
+- **Uvicorn**: ASGI server for FastAPI
 - **Python**: Core language
+- **Jira API** (jira): Integration with Atlassian Jira
+- **GitLab API** (python-gitlab): Integration with GitLab
+- **Confluence API** (atlassian-python-api): Integration with Confluence
+- **Cachetools**: Intelligent caching layer
+- **Python-dotenv**: Environment configuration
 
 ### Frontend
 - **React**: UI library
@@ -253,7 +315,7 @@ Edit the calculation functions in `backend/models.py`:
 - **Axios**: HTTP client
 - **CSS3**: Styling
 
-## 🔒 Security Considerations
+## Security Considerations
 
 For production deployment:
 1. Add authentication and authorization
@@ -264,9 +326,10 @@ For production deployment:
 6. Implement proper error handling
 7. Add logging and monitoring
 
-## 📝 Future Enhancements
+## Future Enhancements
 
-- [ ] Real-time data sync
+- [x] Real-time data from Jira, GitLab, Confluence
+- [x] Multi-team support with filtering
 - [ ] Export to PDF/Excel
 - [ ] Email notifications
 - [ ] Custom date ranges
@@ -275,20 +338,19 @@ For production deployment:
 - [ ] Slack/Teams integration
 - [ ] Machine learning predictions
 - [ ] Mobile app
-- [ ] Multi-team support
+- [ ] GitHub integration (in addition to GitLab)
+- [ ] Azure DevOps integration
 
-## 🤝 Contributing
+## Contributing
 
 Feel free to fork this project and customize it for your team's needs!
 
-## 📄 License
+## License
 
 MIT License - feel free to use this project for personal or commercial purposes.
 
-## 📧 Support
+## Support
 
 For questions or issues, please open an issue in the repository.
 
 ---
-
-**Made with ❤️ for productive teams**

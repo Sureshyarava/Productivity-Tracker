@@ -3,18 +3,19 @@ import axios from 'axios';
 
 const API_URL = 'http://localhost:5001/api';
 
-function PullRequests() {
+function PullRequests({ selectedTeam }) {
   const [data, setData] = useState(null);
   const [filter, setFilter] = useState('all');
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     fetchPullRequests();
-  }, []);
+  }, [selectedTeam]);
 
   const fetchPullRequests = async () => {
     try {
-      const response = await axios.get(`${API_URL}/pull-requests`);
+      const params = selectedTeam ? { team: selectedTeam } : {};
+      const response = await axios.get(`${API_URL}/pull-requests`, { params });
       setData(response.data);
       setLoading(false);
     } catch (error) {
@@ -45,7 +46,7 @@ function PullRequests() {
 
   return (
     <div className="pull-requests">
-      <h2>🔀 Pull Requests</h2>
+      <h2>Pull Requests</h2>
       <p style={{ marginBottom: '30px', color: '#666' }}>
         Track all pull requests and review status
       </p>
@@ -140,7 +141,7 @@ function PullRequests() {
       )}
 
       <div style={{ marginTop: '30px', padding: '20px', background: '#f0f8ff', borderRadius: '10px' }}>
-        <h3>📊 PR Statistics</h3>
+        <h3>PR Statistics</h3>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '15px', marginTop: '15px' }}>
           <div>
             <strong>Total Lines Changed:</strong><br/>

@@ -1,100 +1,152 @@
-from flask import Flask, jsonify, request
-from flask_cors import CORS
+from fastapi import FastAPI, Query
+from fastapi.middleware.cors import CORSMiddleware
 from datetime import datetime, timedelta
 import json
 from models import generate_fake_data, get_productivity_metrics, get_time_distribution, get_team_performance
+from typing import Optional
+from config import config
 
-app = Flask(__name__)
-CORS(app)
+app = FastAPI(title="Progress Tracker API", version="1.0.0")
 
-# Generate fake data on startup
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 data = generate_fake_data()
 
-@app.route('/api/overview', methods=['GET'])
-def get_overview():
+@app.get('/api/overview')
+def get_overview(team: Optional[str] = Query(None)):
     """Get overall productivity overview"""
-    return jsonify(get_productivity_metrics(data))
+    return get_productivity_metrics(data, team)
 
-@app.route('/api/time-distribution', methods=['GET'])
-def get_time_dist():
+@app.get('/api/status')
+def get_api_status():
+    """Get API integration status"""
+    from jira_integration import jira_integration
+    from gitlab_integration import gitlab_integration
+    from confluence_integration import confluence_integration
+    
+    return {
+        'use_mock_data': config.USE_MOCK_DATA,
+        'jira_enabled': jira_integration.enabled,
+        'gitlab_enabled': gitlab_integration.enabled,
+        'confluence_enabled': confluence_integration.enabled,
+        'teams': config.TEAMS
+    }
+
+@app.get('/api/time-distribution')
+def get_time_dist(
+    period: str = Query('week'),
+    team: Optional[str] = Query(None)
+):
     """Get time distribution across different activities"""
-    period = request.args.get('period', 'week')  # day, week, month
-    return jsonify(get_time_distribution(data, period))
+    return get_time_distribution(data, period, team)
 
-@app.route('/api/team-performance', methods=['GET'])
-def get_team_perf():
+@app.get('/api/team-performance')
+def get_team_perf(team: Optional[str] = Query(None)):
     """Get team member performance metrics"""
-    return jsonify(get_team_performance(data))
+    return get_team_performance(data, team)
 
-@app.route('/api/user-stories', methods=['GET'])
-def get_user_stories():
+@app.get('/api/user-stories')
+def get_user_stories(team: Optional[str] = Query(None)):
     """Get all user stories with status"""
-    return jsonify({
-        'stories': data['user_stories'],
-        'total': len(data['user_stories']),
-        'completed': len([s for s in data['user_stories'] if s['status'] == 'Done']),
-        'in_progress': len([s for s in data['user_stories'] if s['status'] == 'In Progress'])
-    })
+    stories = data['user_stories']
+    if team:
+        stories = [s for s in stories if s.get('team') == team]
+    return {
+        'stories': stories,
+        'total': len(stories),
+        'completed': len([s for s in stories if s['status'] == 'Done']),
+        'in_progress': len([s for s in stories if s['status'] == 'In Progress'])
+    }
 
-@app.route('/api/pull-requests', methods=['GET'])
-def get_pull_requests():
+@app.get('/api/pull-requests')
+def get_pull_requests(team: Optional[str] = Query(None)):
     """Get all pull requests"""
-    return jsonify({
-        'prs': data['pull_requests'],
-        'total': len(data['pull_requests']),
-        'merged': len([pr for pr in data['pull_requests'] if pr['status'] == 'Merged']),
-        'open': len([pr for pr in data['pull_requests'] if pr['status'] == 'Open'])
-    })
+    prs = data['pull_requests']
+    if team:
+        prs = [pr for pr in prs if pr.get('team') == team]
+    return {
+        'prs': prs,
+        'total': len(prs),
+        'merged': len([pr for pr in prs if pr['status'] == 'Merged']),
+        'open': len([pr for pr in prs if pr['status'] == 'Open'])
+    }
 
-@app.route('/api/testing', methods=['GET'])
-def get_testing():
+@app.get('/api/testing')
+def get_testing(team: Optional[str] = Query(None)):
     """Get testing activities"""
-    return jsonify({
-        'tests': data['testing'],
-        'total_time': sum([t['time_spent'] for t in data['testing']]),
-        'passed': len([t for t in data['testing'] if t['status'] == 'Passed']),
-        'failed': len([t for t in data['testing'] if t['status'] == 'Failed'])
-    })
+    tests = data['testing']
+    if team:
+        tests = [t for t in tests if t.get('team') == team]
+    return {
+        'tests': tests,
+        'total_time': sum([t['time_spent'] for t in tests]),
+        'passed': len([t for t in tests if t['status'] == 'Passed']),
+        'failed': len([t for t in tests if t['status'] == 'Failed'])
+    }
 
-@app.route('/api/prod-support', methods=['GET'])
-def get_prod_support():
+@app.get('/api/prod-support')
+def get_prod_support(team: Optional[str] = Query(None)):
     """Get production support activities"""
-    return jsonify({
-        'support': data['prod_support'],
-        'total_time': sum([s['time_spent'] for s in data['prod_support']]),
-        'resolved': len([s for s in data['prod_support'] if s['status'] == 'Resolved'])
-    })
+    support = data['prod_support']
+    if team:
+        support = [s for s in support if s.get('team') == team]
+    return {
+        'support': support,
+        'total_time': sum([s['time_spent'] for s in support]),
+        'resolved': len([s for s in support if s['status'] == 'Resolved'])
+    }
 
-@app.route('/api/prod-issues', methods=['GET'])
-def get_prod_issues():
+@app.get('/api/prod-issues')
+def get_prod_issues(team: Optional[str] = Query(None)):
     """Get production issues"""
-    return jsonify({
-        'issues': data['prod_issues'],
-        'total': len(data['prod_issues']),
-        'critical': len([i for i in data['prod_issues'] if i['severity'] == 'Critical']),
-        'resolved': len([i for i in data['prod_issues'] if i['status'] == 'Resolved']),
-        'avg_resolution_time': sum([i.get('resolution_time', 0) for i in data['prod_issues'] if i['status'] == 'Resolved']) / max(1, len([i for i in data['prod_issues'] if i['status'] == 'Resolved']))
-    })
+    issues = data['prod_issues']
+    if team:
+        issues = [i for i in issues if i.get('team') == team]
+    return {
+        'issues': issues,
+        'total': len(issues),
+        'critical': len([i for i in issues if i['severity'] == 'Critical']),
+        'resolved': len([i for i in issues if i['status'] == 'Resolved']),
+        'avg_resolution_time': sum([i.get('resolution_time', 0) for i in issues if i['status'] == 'Resolved']) / max(1, len([i for i in issues if i['status'] == 'Resolved']))
+    }
 
-@app.route('/api/insights', methods=['GET'])
-def get_insights():
+@app.get('/api/insights')
+def get_insights(team: Optional[str] = Query(None)):
     """Get AI-generated insights about productivity"""
+    stories = data['user_stories']
+    prs = data['pull_requests']
+    tests = data['testing']
+    support = data['prod_support']
+    issues = data['prod_issues']
+    
+    if team:
+        stories = [s for s in stories if s.get('team') == team]
+        prs = [pr for pr in prs if pr.get('team') == team]
+        tests = [t for t in tests if t.get('team') == team]
+        support = [s for s in support if s.get('team') == team]
+        issues = [i for i in issues if i.get('team') == team]
+    
     total_time = sum([
-        sum([s['time_spent'] for s in data['user_stories']]),
-        sum([pr['time_spent'] for pr in data['pull_requests']]),
-        sum([t['time_spent'] for t in data['testing']]),
-        sum([s['time_spent'] for s in data['prod_support']]),
-        sum([i['time_spent'] for i in data['prod_issues']])
+        sum([s['time_spent'] for s in stories]),
+        sum([pr['time_spent'] for pr in prs]),
+        sum([t['time_spent'] for t in tests]),
+        sum([s['time_spent'] for s in support]),
+        sum([i['time_spent'] for i in issues])
     ])
     
-    prod_support_time = sum([s['time_spent'] for s in data['prod_support']])
-    prod_issues_time = sum([i['time_spent'] for i in data['prod_issues']])
-    testing_time = sum([t['time_spent'] for t in data['testing']])
-    development_time = sum([s['time_spent'] for s in data['user_stories']]) + sum([pr['time_spent'] for pr in data['pull_requests']])
+    prod_support_time = sum([s['time_spent'] for s in support])
+    prod_issues_time = sum([i['time_spent'] for i in issues])
+    testing_time = sum([t['time_spent'] for t in tests])
+    development_time = sum([s['time_spent'] for s in stories]) + sum([pr['time_spent'] for pr in prs])
     
     insights = []
     
-    # Calculate percentages
     if total_time > 0:
         prod_support_pct = (prod_support_time / total_time) * 100
         prod_issues_pct = (prod_issues_time / total_time) * 100
@@ -133,8 +185,7 @@ def get_insights():
                 'value': dev_pct
             })
     
-    # PR insights
-    avg_pr_time = sum([pr['time_spent'] for pr in data['pull_requests']]) / max(1, len(data['pull_requests']))
+    avg_pr_time = sum([pr['time_spent'] for pr in prs]) / max(1, len(prs))
     if avg_pr_time > 16:
         insights.append({
             'type': 'warning',
@@ -143,14 +194,27 @@ def get_insights():
             'value': avg_pr_time
         })
     
-    return jsonify({'insights': insights})
+    return {'insights': insights}
 
-@app.route('/api/trends', methods=['GET'])
-def get_trends():
+@app.get('/api/trends')
+def get_trends(
+    days: int = Query(30),
+    team: Optional[str] = Query(None)
+):
     """Get productivity trends over time"""
-    days = int(request.args.get('days', 30))
+    stories = data['user_stories']
+    prs = data['pull_requests']
+    tests = data['testing']
+    support = data['prod_support']
+    issues = data['prod_issues']
     
-    # Group data by date
+    if team:
+        stories = [s for s in stories if s.get('team') == team]
+        prs = [pr for pr in prs if pr.get('team') == team]
+        tests = [t for t in tests if t.get('team') == team]
+        support = [s for s in support if s.get('team') == team]
+        issues = [i for i in issues if i.get('team') == team]
+    
     trends = {}
     base_date = datetime.now() - timedelta(days=days)
     
@@ -163,36 +227,57 @@ def get_trends():
             'prod_issues': 0
         }
     
-    # Distribute time across dates (simplified)
-    for story in data['user_stories']:
+    for story in stories:
         date = story['created_date']
         if date in trends:
             trends[date]['development'] += story['time_spent'] / 7
     
-    for pr in data['pull_requests']:
+    for pr in prs:
         date = pr['created_date']
         if date in trends:
             trends[date]['development'] += pr['time_spent'] / 7
     
-    for test in data['testing']:
+    for test in tests:
         date = test['date']
         if date in trends:
             trends[date]['testing'] += test['time_spent']
     
-    for support in data['prod_support']:
-        date = support['date']
+    for sup in support:
+        date = sup['date']
         if date in trends:
-            trends[date]['prod_support'] += support['time_spent']
+            trends[date]['prod_support'] += sup['time_spent']
     
-    for issue in data['prod_issues']:
+    for issue in issues:
         date = issue['reported_date']
         if date in trends:
             trends[date]['prod_issues'] += issue['time_spent']
     
-    return jsonify({
+    return {
         'dates': list(trends.keys()),
         'data': trends
-    })
+    }
+
+@app.get('/api/teams')
+def get_teams():
+    """Get list of all teams"""
+    teams = set()
+    for item in data['user_stories']:
+        if 'team' in item:
+            teams.add(item['team'])
+    for item in data['pull_requests']:
+        if 'team' in item:
+            teams.add(item['team'])
+    for item in data['testing']:
+        if 'team' in item:
+            teams.add(item['team'])
+    for item in data['prod_support']:
+        if 'team' in item:
+            teams.add(item['team'])
+    for item in data['prod_issues']:
+        if 'team' in item:
+            teams.add(item['team'])
+    return {'teams': sorted(list(teams))}
 
 if __name__ == '__main__':
-    app.run(debug=True, port=5001, host='127.0.0.1')
+    import uvicorn
+    uvicorn.run(app, host='127.0.0.1', port=5001)

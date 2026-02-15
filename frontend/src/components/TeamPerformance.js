@@ -6,18 +6,19 @@ import {
 
 const API_URL = 'http://localhost:5001/api';
 
-function TeamPerformance() {
+function TeamPerformance({ selectedTeam }) {
   const [teamData, setTeamData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [sortBy, setSortBy] = useState('productivity_score');
 
   useEffect(() => {
     fetchTeamPerformance();
-  }, []);
+  }, [selectedTeam]);
 
   const fetchTeamPerformance = async () => {
     try {
-      const response = await axios.get(`${API_URL}/team-performance`);
+      const params = selectedTeam ? { team: selectedTeam } : {};
+      const response = await axios.get(`${API_URL}/team-performance`, { params });
       setTeamData(response.data);
       setLoading(false);
     } catch (error) {
@@ -34,7 +35,7 @@ function TeamPerformance() {
 
   return (
     <div className="team-performance">
-      <h2>👥 Team Performance</h2>
+      <h2>Team Performance</h2>
       <p style={{ marginBottom: '30px', color: '#666' }}>
         Individual team member productivity metrics and contributions
       </p>
@@ -109,7 +110,7 @@ function TeamPerformance() {
       </div>
 
       <div style={{ marginTop: '30px', padding: '20px', background: '#f8f9fa', borderRadius: '10px' }}>
-        <h3>📌 Productivity Score Calculation</h3>
+        <h3>Productivity Score Calculation</h3>
         <p style={{ lineHeight: '1.8', marginTop: '10px' }}>
           The productivity score is calculated based on:
         </p>

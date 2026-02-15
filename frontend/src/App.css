@@ -39,6 +39,41 @@ body {
   font-size: 1.1em;
 }
 
+.team-selector {
+  margin-top: 20px;
+  padding: 15px;
+  background: #f8f9fa;
+  border-radius: 8px;
+  display: inline-block;
+}
+
+.team-selector label {
+  font-weight: bold;
+  color: #333;
+  margin-right: 10px;
+}
+
+.team-selector select {
+  padding: 8px 15px;
+  border-radius: 5px;
+  border: 2px solid #667eea;
+  background: white;
+  color: #333;
+  font-size: 1em;
+  cursor: pointer;
+  outline: none;
+  transition: all 0.3s ease;
+}
+
+.team-selector select:hover {
+  border-color: #764ba2;
+}
+
+.team-selector select:focus {
+  border-color: #764ba2;
+  box-shadow: 0 0 5px rgba(118, 75, 162, 0.3);
+}
+
 .nav-tabs {
   display: flex;
   gap: 10px;

@@ -14,14 +14,30 @@ function App() {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [overview, setOverview] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [teams, setTeams] = useState([]);
+  const [selectedTeam, setSelectedTeam] = useState('');
+
+  useEffect(() => {
+    fetchTeams();
+  }, []);
 
   useEffect(() => {
     fetchOverview();
-  }, []);
+  }, [selectedTeam]);
+
+  const fetchTeams = async () => {
+    try {
+      const response = await axios.get(`${API_URL}/teams`);
+      setTeams(response.data.teams);
+    } catch (error) {
+      console.error('Error fetching teams:', error);
+    }
+  };
 
   const fetchOverview = async () => {
     try {
-      const response = await axios.get(`${API_URL}/overview`);
+      const params = selectedTeam ? { team: selectedTeam } : {};
+      const response = await axios.get(`${API_URL}/overview`, { params });
       setOverview(response.data);
       setLoading(false);
     } catch (error) {
@@ -42,8 +58,21 @@ function App() {
   return (
     <div className="App">
       <header className="app-header">
-        <h1>📊 Productivity Tracker</h1>
+        <h1>Productivity Tracker</h1>
         <p className="subtitle">Measure, Analyze, and Optimize Team Performance</p>
+        <div className="team-selector">
+          <label htmlFor="team-select">Filter by Team: </label>
+          <select 
+            id="team-select"
+            value={selectedTeam} 
+            onChange={(e) => setSelectedTeam(e.target.value)}
+          >
+            <option value="">All Teams</option>
+            {teams.map((team) => (
+              <option key={team} value={team}>{team}</option>
+            ))}
+          </select>
+        </div>
       </header>
 
       <nav className="nav-tabs">
@@ -86,12 +115,12 @@ function App() {
       </nav>
 
       <main className="content">
-        {activeTab === 'dashboard' && <Dashboard overview={overview} />}
-        {activeTab === 'time' && <TimeDistribution />}
-        {activeTab === 'team' && <TeamPerformance />}
-        {activeTab === 'insights' && <Insights />}
-        {activeTab === 'stories' && <UserStories />}
-        {activeTab === 'prs' && <PullRequests />}
+        {activeTab === 'dashboard' && <Dashboard overview={overview} selectedTeam={selectedTeam} />}
+        {activeTab === 'time' && <TimeDistribution selectedTeam={selectedTeam} />}
+        {activeTab === 'team' && <TeamPerformance selectedTeam={selectedTeam} />}
+        {activeTab === 'insights' && <Insights selectedTeam={selectedTeam} />}
+        {activeTab === 'stories' && <UserStories selectedTeam={selectedTeam} />}
+        {activeTab === 'prs' && <PullRequests selectedTeam={selectedTeam} />}
       </main>
     </div>
   );

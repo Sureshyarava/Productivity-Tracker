@@ -7,16 +7,17 @@ ChartJS.register(ArcElement, Tooltip, Legend);
 
 const API_URL = 'http://localhost:5001/api';
 
-function Dashboard({ overview }) {
+function Dashboard({ overview, selectedTeam }) {
   const [timeDistribution, setTimeDistribution] = useState(null);
 
   useEffect(() => {
     fetchTimeDistribution();
-  }, []);
+  }, [selectedTeam]);
 
   const fetchTimeDistribution = async () => {
     try {
-      const response = await axios.get(`${API_URL}/time-distribution`);
+      const params = selectedTeam ? { team: selectedTeam } : {};
+      const response = await axios.get(`${API_URL}/time-distribution`, { params });
       setTimeDistribution(response.data);
     } catch (error) {
       console.error('Error fetching time distribution:', error);
@@ -67,7 +68,7 @@ function Dashboard({ overview }) {
 
   return (
     <div className="dashboard">
-      <h2>📈 Productivity Overview</h2>
+      <h2>Productivity Overview</h2>
       
       <div className="stats-grid">
         <div className="stat-card">
@@ -132,14 +133,14 @@ function Dashboard({ overview }) {
       </div>
 
       <div style={{ marginTop: '30px', padding: '20px', background: '#f0f8ff', borderRadius: '10px' }}>
-        <h3>💡 Quick Summary</h3>
+        <h3>Quick Summary</h3>
         <ul style={{ marginTop: '15px', lineHeight: '2', paddingLeft: '20px' }}>
           <li>Team has completed <strong>{overview.completed_stories}</strong> user stories</li>
           <li><strong>{overview.merged_prs}</strong> pull requests have been merged</li>
           <li><strong>{devPercentage}%</strong> of time is spent on development activities</li>
           <li><strong>{issuesPercentage}%</strong> of time is spent addressing production issues</li>
           {parseFloat(issuesPercentage) > 20 && (
-            <li style={{ color: '#dc3545' }}>⚠️ High production issue time - consider improving quality processes</li>
+            <li style={{ color: '#dc3545' }}>High production issue time - consider improving quality processes</li>
           )}
         </ul>
       </div>
